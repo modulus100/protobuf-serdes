@@ -1,0 +1,12 @@
+# Gradle caches and build outputs
+.gradle/
+**/build/
+.kotlin/
+
+# IntelliJ / JetBrains
+.idea/
+*.iml
+out/
+
+# OS files
+.DS_Store
