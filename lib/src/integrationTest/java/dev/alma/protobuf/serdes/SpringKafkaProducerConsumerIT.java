@@ -28,7 +28,16 @@ class SpringKafkaProducerConsumerIT {
     @DynamicPropertySource
     static void registerKafkaProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
+        registry.add("spring.kafka.producer.key-serializer", () -> "org.apache.kafka.common.serialization.StringSerializer");
+        registry.add("spring.kafka.producer.value-serializer", ProtobufSerializer.class::getName);
+        registry.add("spring.kafka.consumer.key-deserializer", () -> "org.apache.kafka.common.serialization.StringDeserializer");
+        registry.add("spring.kafka.consumer.value-deserializer", ProtobufDeserializer.class::getName);
+        registry.add("spring.kafka.consumer.group-id", () -> "protobuf-serdes-it-group");
         registry.add("spring.kafka.consumer.auto-offset-reset", () -> "earliest");
+        registry.add(
+            "spring.kafka.consumer.properties." + ProtobufDeserializer.VALUE_CLASS_NAME_CONFIG,
+            UserCreated.class::getName
+        );
     }
 
     @Autowired

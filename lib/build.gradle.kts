@@ -40,8 +40,8 @@ dependencies {
     add(integrationTestSourceSet.implementationConfigurationName, platform(libs.spring.boot.bom))
     add(integrationTestSourceSet.implementationConfigurationName, platform(libs.testcontainers.bom))
     add(integrationTestSourceSet.implementationConfigurationName, libs.spring.boot.starter)
+    add(integrationTestSourceSet.implementationConfigurationName, libs.spring.boot.starter.kafka)
     add(integrationTestSourceSet.implementationConfigurationName, libs.spring.boot.starter.test)
-    add(integrationTestSourceSet.implementationConfigurationName, libs.spring.kafka)
     add(integrationTestSourceSet.implementationConfigurationName, libs.testcontainers.junit.jupiter)
     add(integrationTestSourceSet.implementationConfigurationName, libs.testcontainers.kafka)
 }

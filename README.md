@@ -36,11 +36,32 @@ Use generated protobuf parser in your consumer configuration:
 import dev.alma.protobuf.serdes.ProtobufDeserializer;
 import dev.alma.protobuf.serdes.ProtobufSerializer;
 import com.myteam.events.v1.UserCreated;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 var keyDeserializer = new StringDeserializer();
-var valueDeserializer = new ProtobufDeserializer<>(UserCreated.parser());
+var valueDeserializer = new ProtobufDeserializer<UserCreated>();
 var keySerializer = new StringSerializer();
 var valueSerializer = new ProtobufSerializer<UserCreated>();
+
+props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ProtobufDeserializer.class);
+props.put(ProtobufDeserializer.VALUE_CLASS_NAME_CONFIG, "com.myteam.events.v1.UserCreated");
+```
+
+Spring Boot `application.yml` style:
+
+```yaml
+spring:
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: dev.alma.protobuf.serdes.ProtobufSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: dev.alma.protobuf.serdes.ProtobufDeserializer
+      group-id: my-group
+      auto-offset-reset: earliest
+      properties:
+        protobuf.value.class: com.myteam.events.v1.UserCreated
 ```
