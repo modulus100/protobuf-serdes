@@ -1,6 +1,7 @@
 [versions]
 junit = "5.12.1"
 junit-platform = "1.12.1"
+jmh = "1.37"
 kafka = "3.9.1"
 protobuf = "4.33.5"
 protobuf-plugin = "0.9.5"
@@ -12,6 +13,8 @@ kafka-clients = { module = "org.apache.kafka:kafka-clients", version.ref = "kafk
 protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
+jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
+jmh-generator-annprocess = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }
 spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter" }
 spring-boot-starter-kafka = { module = "org.springframework.boot:spring-boot-starter-kafka" }

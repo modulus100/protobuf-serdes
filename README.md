@@ -28,6 +28,12 @@ Regenerate test protobuf classes after proto changes:
 ./gradlew :lib:generateTestProto :lib:generateIntegrationTestProto
 ```
 
+Run deserialization micro-benchmarks (JMH):
+
+```bash
+./gradlew :lib:jmh
+```
+
 ## Spring Boot usage (Kafka)
 
 Use generated protobuf parser in your consumer configuration:

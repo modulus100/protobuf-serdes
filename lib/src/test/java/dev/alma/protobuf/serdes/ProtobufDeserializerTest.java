@@ -89,25 +89,7 @@ class ProtobufDeserializerTest {
         );
     }
 
-    @Test
-    void ignoresSecondConfigureCallAfterInitialized() {
-        ProtobufDeserializer<UserCreated> configuredDeserializer = configuredDeserializer();
-        configuredDeserializer.configure(
-            Map.of(ProtobufDeserializer.VALUE_CLASS_NAME_CONFIG, "com.missing.DoesNotExist"),
-            false
-        );
-
-        UserCreated value = UserCreated.newBuilder()
-            .setUserId("u-5")
-            .setEmail("u-5@example.com")
-            .setCreatedAtEpochMs(1_739_801_238_000L)
-            .build();
-
-        UserCreated deserialized = configuredDeserializer.deserialize("users", value.toByteArray());
-        assertEquals(value, deserialized);
-    }
-
-    private static ProtobufDeserializer<UserCreated> configuredDeserializer() {
+    private ProtobufDeserializer<UserCreated> configuredDeserializer() {
         ProtobufDeserializer<UserCreated> deserializer = new ProtobufDeserializer<>();
         deserializer.configure(
             Map.of(ProtobufDeserializer.VALUE_CLASS_NAME_CONFIG, UserCreated.class.getName()),

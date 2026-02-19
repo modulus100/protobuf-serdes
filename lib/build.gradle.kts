@@ -1,5 +1,6 @@
 import com.google.protobuf.gradle.*
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.getByType
@@ -26,14 +27,23 @@ dependencies {
 val sourceSets = extensions.getByType<SourceSetContainer>()
 val mainSourceSet = sourceSets.named("main").get()
 val integrationTestSourceSet = sourceSets.create("integrationTest")
+val jmhSourceSet = sourceSets.create("jmh")
 integrationTestSourceSet.compileClasspath += mainSourceSet.output
 integrationTestSourceSet.runtimeClasspath += mainSourceSet.output
+jmhSourceSet.compileClasspath += mainSourceSet.output
+jmhSourceSet.runtimeClasspath += mainSourceSet.output
 
 configurations.named(integrationTestSourceSet.implementationConfigurationName) {
     extendsFrom(configurations.testImplementation.get())
 }
 configurations.named(integrationTestSourceSet.runtimeOnlyConfigurationName) {
     extendsFrom(configurations.testRuntimeOnly.get())
+}
+configurations.named(jmhSourceSet.implementationConfigurationName) {
+    extendsFrom(configurations.implementation.get())
+}
+configurations.named(jmhSourceSet.runtimeOnlyConfigurationName) {
+    extendsFrom(configurations.runtimeOnly.get())
 }
 
 dependencies {
@@ -44,6 +54,9 @@ dependencies {
     add(integrationTestSourceSet.implementationConfigurationName, libs.spring.boot.starter.test)
     add(integrationTestSourceSet.implementationConfigurationName, libs.testcontainers.junit.jupiter)
     add(integrationTestSourceSet.implementationConfigurationName, libs.testcontainers.kafka)
+
+    add(jmhSourceSet.implementationConfigurationName, libs.jmh.core)
+    add(jmhSourceSet.annotationProcessorConfigurationName, libs.jmh.generator.annprocess)
 }
 
 protobuf {
@@ -63,6 +76,14 @@ tasks.register<Test>("integrationTest") {
     classpath = integrationTestSourceSet.runtimeClasspath
     shouldRunAfter(tasks.test)
     useJUnitPlatform()
+}
+
+tasks.register<JavaExec>("jmh") {
+    group = "benchmark"
+    description = "Runs JMH benchmarks for protobuf deserialization paths."
+    classpath = jmhSourceSet.runtimeClasspath
+    mainClass.set("org.openjdk.jmh.Main")
+    args("dev.alma.protobuf.serdes.bench.ProtobufDeserializerBenchmark")
 }
 
 java {
