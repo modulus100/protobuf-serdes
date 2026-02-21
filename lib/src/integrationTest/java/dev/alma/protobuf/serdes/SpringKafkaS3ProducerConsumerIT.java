@@ -7,11 +7,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import proto.it.v1.UserCreated;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -38,6 +46,8 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 @SpringBootTest(classes = SpringKafkaTestApplication.class)
 class SpringKafkaS3ProducerConsumerIT {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(SpringKafkaS3ProducerConsumerIT.class);
+
     private static final String SUBJECT = "proto.it.v1.user-created";
     private static final String VERSION = "1";
     private static final String ALT_SUBJECT = "proto.it.v1.user-created-alt";
@@ -45,6 +55,12 @@ class SpringKafkaS3ProducerConsumerIT {
     private static final String BUCKET = "protobuf-descriptors-it";
     private static final String KEY_TEMPLATE = "{subject}/{version}/descriptor.pb";
     private static final String DESCRIPTOR_RESOURCE = "descriptors/user_created_v1.desc";
+
+    @Autowired
+    private KafkaTemplate<String, UserCreated> kafkaTemplate;
+
+    @Autowired
+    private ProbeConsumer probeConsumer;
 
     @Container
     static final ConfluentKafkaContainer kafka =
@@ -92,11 +108,14 @@ class SpringKafkaS3ProducerConsumerIT {
         registry.add("spring.kafka.producer.value-serializer", ProtobufS3Serializer.class::getName);
         registry.add("spring.kafka.producer.properties." + ProtobufS3Serializer.SUBJECT_CONFIG, () -> SUBJECT);
         registry.add("spring.kafka.producer.properties." + ProtobufS3Serializer.VERSION_CONFIG, () -> VERSION);
+        registry.add("spring.kafka.producer.properties.linger.ms", () -> System.getProperty("soak.producer.linger.ms", "5"));
+        registry.add("spring.kafka.producer.properties.batch.size", () -> System.getProperty("soak.producer.batch.size", "65536"));
 
         registry.add("spring.kafka.consumer.key-deserializer", () -> "org.apache.kafka.common.serialization.StringDeserializer");
         registry.add("spring.kafka.consumer.value-deserializer", ProtobufS3Deserializer.class::getName);
         registry.add("spring.kafka.consumer.group-id", () -> "protobuf-serdes-s3-it-group");
         registry.add("spring.kafka.consumer.auto-offset-reset", () -> "earliest");
+        registry.add("spring.kafka.listener.concurrency", () -> System.getProperty("soak.listener.concurrency", "1"));
         registry.add(
             "spring.kafka.consumer.properties." + ProtobufS3Deserializer.VALUE_CLASS_NAME_CONFIG,
             UserCreated.class::getName
@@ -113,12 +132,6 @@ class SpringKafkaS3ProducerConsumerIT {
         registry.add("spring.kafka.consumer.properties." + ProtobufS3Deserializer.S3_KEY_TEMPLATE_CONFIG, () -> KEY_TEMPLATE);
     }
 
-    @Autowired
-    private KafkaTemplate<String, UserCreated> kafkaTemplate;
-
-    @Autowired
-    private ProbeConsumer probeConsumer;
-
     @Test
     void producerAndConsumerRoundTripWithS3BackedProtobufSerdes() throws Exception {
         UserCreated payload = UserCreated.newBuilder()
@@ -131,6 +144,62 @@ class SpringKafkaS3ProducerConsumerIT {
 
         UserCreated consumed = probeConsumer.awaitMessage(Duration.ofSeconds(20));
         assertEquals(payload, consumed);
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named = "soak.tests", matches = "true")
+    void soakTestMultiThreadedConsumersHighThroughput() throws Exception {
+        int totalMessages = Integer.getInteger("soak.messages", 20_000);
+        int producerThreads = Integer.getInteger("soak.producer.threads", 8);
+        int consumeTimeoutSeconds = Integer.getInteger("soak.consume.timeout.seconds", 180);
+
+        probeConsumer.prepareForBatch(totalMessages);
+
+        long startedAt = System.nanoTime();
+        sendBatchInParallel(totalMessages, producerThreads);
+        int consumed = probeConsumer.awaitBatch(Duration.ofSeconds(consumeTimeoutSeconds));
+        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
+
+        assertEquals(totalMessages, consumed);
+        double throughput = consumed / Math.max(1.0d, (elapsedMillis / 1000.0d));
+        LOGGER.info(
+            "Soak test complete: messages={}, threads={}, elapsedMs={}, throughput={} msg/s",
+            consumed,
+            producerThreads,
+            elapsedMillis,
+            throughput
+        );
+    }
+
+    private void sendBatchInParallel(int totalMessages, int producerThreads) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(producerThreads);
+        try {
+            List<CompletableFuture<Void>> workers = new ArrayList<>(producerThreads);
+            int baseBatch = totalMessages / producerThreads;
+            int remainder = totalMessages % producerThreads;
+            int from = 0;
+            for (int threadIndex = 0; threadIndex < producerThreads; threadIndex++) {
+                int size = baseBatch + (threadIndex < remainder ? 1 : 0);
+                int start = from;
+                int end = start + size;
+                from = end;
+                workers.add(CompletableFuture.runAsync(() -> sendRange(start, end), executor));
+            }
+            CompletableFuture.allOf(workers.toArray(CompletableFuture[]::new)).get(5, TimeUnit.MINUTES);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private void sendRange(int startInclusive, int endExclusive) {
+        for (int i = startInclusive; i < endExclusive; i++) {
+            UserCreated payload = UserCreated.newBuilder()
+                .setUserId("u-soak-" + i)
+                .setEmail("u-soak-" + i + "@example.com")
+                .setCreatedAtEpochMs(1_739_801_300_000L + i)
+                .build();
+            kafkaTemplate.send(USER_CREATED_TOPIC, payload.getUserId(), payload).join();
+        }
     }
 
     @Test

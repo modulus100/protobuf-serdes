@@ -24,6 +24,17 @@ Run integration tests (requires Docker):
 ./gradlew :lib:integrationTest
 ```
 
+Run optional load/soak integration test (disabled by default):
+
+```bash
+./gradlew :lib:integrationTest \
+  -Dsoak.tests=true \
+  -Dsoak.messages=20000 \
+  -Dsoak.producer.threads=8 \
+  -Dsoak.listener.concurrency=6 \
+  -Dsoak.consume.timeout.seconds=180
+```
+
 Regenerate integration descriptor file from proto with Buf:
 
 ```bash

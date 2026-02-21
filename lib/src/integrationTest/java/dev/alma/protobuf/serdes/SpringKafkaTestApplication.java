@@ -16,7 +16,7 @@ public class SpringKafkaTestApplication {
 
     @Bean
     NewTopic userCreatedTopic() {
-        return TopicBuilder.name(USER_CREATED_TOPIC).partitions(1).replicas(1).build();
+        return TopicBuilder.name(USER_CREATED_TOPIC).partitions(6).replicas(1).build();
     }
 
     @Bean

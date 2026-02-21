@@ -81,6 +81,17 @@ tasks.register<Test>("integrationTest") {
     testClassesDirs = integrationTestSourceSet.output.classesDirs
     classpath = integrationTestSourceSet.runtimeClasspath
     shouldRunAfter(tasks.test)
+    listOf(
+        "soak.tests",
+        "soak.messages",
+        "soak.producer.threads",
+        "soak.listener.concurrency",
+        "soak.consume.timeout.seconds",
+        "soak.producer.linger.ms",
+        "soak.producer.batch.size"
+    ).forEach { key ->
+        System.getProperty(key)?.let { value -> systemProperty(key, value) }
+    }
     useJUnitPlatform()
 }
 
