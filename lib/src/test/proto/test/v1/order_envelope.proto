@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package proto.test.v1;
+
+option java_multiple_files = true;
+option java_outer_classname = "OrderEnvelopeProto";
+option java_package = "proto.test.v1";
+
+message OrderEnvelope {
+  string event_id = 1;
+  int64 created_at_epoch_ms = 2;
+  Customer customer = 3;
+  repeated LineItem items = 4;
+  Metadata metadata = 5;
+
+  message Customer {
+    string customer_id = 1;
+    string email = 2;
+    Address shipping_address = 3;
+  }
+
+  message Address {
+    string line_1 = 1;
+    string city = 2;
+    string country = 3;
+  }
+
+  message LineItem {
+    string sku = 1;
+    int32 quantity = 2;
+    int64 unit_price_cents = 3;
+  }
+
+  message Metadata {
+    string source = 1;
+    string trace_id = 2;
+  }
+}

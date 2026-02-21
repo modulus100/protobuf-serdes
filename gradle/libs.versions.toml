@@ -6,11 +6,17 @@ kafka = "3.9.1"
 protobuf = "4.33.5"
 protobuf-plugin = "0.9.5"
 spring-boot = "4.0.0"
-testcontainers = "1.20.6"
+testcontainers = "2.0.2"
+testcontainers-modules = "1.21.4"
+aws-sdk = "2.30.31"
+guava = "33.4.8-jre"
 
 [libraries]
 kafka-clients = { module = "org.apache.kafka:kafka-clients", version.ref = "kafka" }
 protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
+aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }
+aws-sdk-s3 = { module = "software.amazon.awssdk:s3" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
@@ -20,9 +26,10 @@ spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter" 
 spring-boot-starter-kafka = { module = "org.springframework.boot:spring-boot-starter-kafka" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 spring-kafka = { module = "org.springframework.kafka:spring-kafka" }
-testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
-testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter" }
-testcontainers-kafka = { module = "org.testcontainers:kafka" }
+testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers-modules" }
+testcontainers-kafka = { module = "org.testcontainers:kafka", version.ref = "testcontainers-modules" }
+testcontainers-localstack = { module = "org.testcontainers:localstack", version.ref = "testcontainers-modules" }
 
 [plugins]
 protobuf = { id = "com.google.protobuf", version.ref = "protobuf-plugin" }

@@ -6,6 +6,8 @@ Minimal Kafka SerDes for protobuf messages, without Confluent serializer/deseria
 
 - `ProtobufSerializer<T extends MessageLite>`
 - `ProtobufDeserializer<T extends MessageLite>`
+- `ProtobufS3Serializer<T extends Message>`
+- `ProtobufS3Deserializer<T extends Message>`
 - Unit tests with real protobuf messages generated from `src/test/proto`
 - Spring Boot 4 + Testcontainers integration tests with protobuf from `src/integrationTest/proto`
 - Published artifact contains only serde classes (test/integration generated classes are not packaged)
@@ -20,6 +22,14 @@ Run integration tests (requires Docker):
 
 ```bash
 ./gradlew :lib:integrationTest
+```
+
+Regenerate integration descriptor file from proto with Buf:
+
+```bash
+buf build lib/src/integrationTest/proto \
+  --as-file-descriptor-set \
+  -o lib/src/integrationTest/resources/descriptors/user_created_v1.desc
 ```
 
 Regenerate test protobuf classes after proto changes:
@@ -70,4 +80,39 @@ spring:
       auto-offset-reset: earliest
       properties:
         protobuf.value.class: com.myteam.events.v1.UserCreated
+```
+
+## Spring Boot usage (S3-backed descriptors)
+
+`ProtobufS3Serializer` writes protobuf bytes and sets Kafka headers:
+- `protobuf.subject`
+- `protobuf.schema.version`
+- `protobuf.message.type`
+
+`ProtobufS3Deserializer` reads those headers, loads descriptor-set bytes from S3, caches schema descriptors using Guava cache, and deserializes into configured message class (or `DynamicMessage` when class is not configured).
+Descriptor bytes should be a Buf-generated file descriptor set (`buf build --as-file-descriptor-set`).
+
+```yaml
+spring:
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: dev.alma.protobuf.serdes.ProtobufS3Serializer
+      properties:
+        protobuf.s3.subject: com.myteam.events.user-created
+        protobuf.s3.version: 1
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: dev.alma.protobuf.serdes.ProtobufS3Deserializer
+      group-id: my-group
+      auto-offset-reset: earliest
+      properties:
+        protobuf.s3.value.class: com.myteam.events.v1.UserCreated
+        protobuf.s3.bucket: my-protobuf-descriptors
+        protobuf.s3.region: us-east-1
+        protobuf.s3.access.key: your-access-key # optional (for LocalStack or static creds)
+        protobuf.s3.secret.key: your-secret-key # optional (for LocalStack or static creds)
+        protobuf.s3.key.template: "{subject}/{version}/descriptor.pb"
+        protobuf.s3.cache.max.size: 1000
+        protobuf.s3.cache.ttl.seconds: 3600
 ```

@@ -20,6 +20,9 @@ repositories {
 dependencies {
     api(libs.kafka.clients)
     api(libs.protobuf.java)
+    implementation(libs.guava)
+    implementation(platform(libs.aws.sdk.bom))
+    implementation(libs.aws.sdk.s3)
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
@@ -48,12 +51,15 @@ configurations.named(jmhSourceSet.runtimeOnlyConfigurationName) {
 
 dependencies {
     add(integrationTestSourceSet.implementationConfigurationName, platform(libs.spring.boot.bom))
-    add(integrationTestSourceSet.implementationConfigurationName, platform(libs.testcontainers.bom))
+    add(integrationTestSourceSet.implementationConfigurationName, platform(libs.aws.sdk.bom))
     add(integrationTestSourceSet.implementationConfigurationName, libs.spring.boot.starter)
     add(integrationTestSourceSet.implementationConfigurationName, libs.spring.boot.starter.kafka)
     add(integrationTestSourceSet.implementationConfigurationName, libs.spring.boot.starter.test)
+    add(integrationTestSourceSet.implementationConfigurationName, libs.testcontainers)
     add(integrationTestSourceSet.implementationConfigurationName, libs.testcontainers.junit.jupiter)
     add(integrationTestSourceSet.implementationConfigurationName, libs.testcontainers.kafka)
+    add(integrationTestSourceSet.implementationConfigurationName, libs.testcontainers.localstack)
+    add(integrationTestSourceSet.implementationConfigurationName, libs.aws.sdk.s3)
 
     add(jmhSourceSet.implementationConfigurationName, libs.jmh.core)
     add(jmhSourceSet.annotationProcessorConfigurationName, libs.jmh.generator.annprocess)
