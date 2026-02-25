@@ -13,3 +13,4 @@ plugins {
 
 rootProject.name = "protobuf-serdes"
 include("lib")
+includeBuild("build-logic")
