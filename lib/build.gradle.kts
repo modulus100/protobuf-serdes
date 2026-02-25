@@ -1,5 +1,5 @@
 plugins {
-    `java-library`
+    id("protobuf-serdes.java-library-conventions")
     alias(libs.plugins.protobuf)
     id("protobuf-serdes.integration-test-conventions")
     id("protobuf-serdes.jmh-conventions")
@@ -7,10 +7,6 @@ plugins {
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 val protobufVersion = libsCatalog.findVersion("protobuf").get().requiredVersion
-
-repositories {
-    mavenCentral()
-}
 
 dependencies {
     api(libs.kafka.clients)
@@ -25,15 +21,5 @@ dependencies {
 protobuf {
     protoc {
         artifact = "com.google.protobuf:protoc:$protobufVersion"
-    }
-}
-
-tasks.test {
-    useJUnitPlatform()
-}
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
     }
 }
