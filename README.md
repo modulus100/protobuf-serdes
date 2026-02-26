@@ -8,8 +8,9 @@ Minimal Kafka SerDes for protobuf messages, without Confluent serializer/deseria
 - `ProtobufDeserializer<T extends MessageLite>`
 - `ProtobufS3Serializer<T extends Message>`
 - `ProtobufS3Deserializer<T extends Message>`
+- `ProtobufDeserializer` payload format modes: `raw`, `confluent`, `auto`
 - Unit tests with real protobuf messages generated from `src/test/proto`
-- Spring Boot 4 + Testcontainers integration tests with protobuf from `src/integrationTest/proto`
+- Spring Boot 4 + Testcontainers integration tests with protobuf from `src/integrationTest/proto` (including `raw`, `confluent`, and `auto` payload-format scenarios)
 - Published artifact contains only serde classes (test/integration generated classes are not packaged)
 
 ## Build and test
@@ -91,7 +92,14 @@ spring:
       auto-offset-reset: earliest
       properties:
         protobuf.value.class: com.myteam.events.v1.UserCreated
+        protobuf.payload.format: raw # raw | confluent | auto
 ```
+
+`protobuf.payload.format` options:
+
+- `raw` (default): parse message bytes directly as protobuf.
+- `confluent`: parse Confluent wire payload (magic byte + schema id + message-indexes + protobuf bytes).
+- `auto`: accept both raw protobuf payload and Confluent wire payload.
 
 ## Spring Boot usage (S3-backed descriptors)
 
