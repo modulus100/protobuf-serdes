@@ -98,8 +98,9 @@ spring:
 `protobuf.payload.format` options:
 
 - `raw` (default): parse message bytes directly as protobuf.
+- `auto` (default): accept both raw protobuf payload and Confluent wire payload.
+- `raw`: parse message bytes directly as protobuf.
 - `confluent`: parse Confluent wire payload (magic byte + schema id + message-indexes + protobuf bytes).
-- `auto`: accept both raw protobuf payload and Confluent wire payload.
 
 ## Spring Boot usage (S3-backed descriptors)
 

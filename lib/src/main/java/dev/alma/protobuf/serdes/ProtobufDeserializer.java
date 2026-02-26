@@ -21,7 +21,7 @@ public final class ProtobufDeserializer<T extends MessageLite> implements Deseri
     private static final int MAX_VARINT_BYTES = 5;
 
     private volatile Parser<T> parser;
-    private volatile PayloadFormat payloadFormat = PayloadFormat.RAW;
+    private volatile PayloadFormat payloadFormat = PayloadFormat.AUTO;
 
     public ProtobufDeserializer() {
     }
@@ -108,7 +108,7 @@ public final class ProtobufDeserializer<T extends MessageLite> implements Deseri
 
     private PayloadFormat payloadFormatFromConfig(Object configuredFormat) {
         if (configuredFormat == null) {
-            return PayloadFormat.RAW;
+            return PayloadFormat.AUTO;
         }
 
         String normalized = configuredFormat.toString().trim().toLowerCase(Locale.ROOT);

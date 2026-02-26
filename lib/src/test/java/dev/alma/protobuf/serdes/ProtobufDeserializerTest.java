@@ -150,6 +150,35 @@ class ProtobufDeserializerTest {
     }
 
     @Test
+    void defaultsToAutoAndDeserializesRawPayload() {
+        ProtobufDeserializer<UserCreated> deserializer = configuredDeserializerWithoutPayloadFormat();
+        UserCreated value = UserCreated.newBuilder()
+            .setUserId("u-default-auto-raw-1")
+            .setEmail("u-default-auto-raw-1@example.com")
+            .setCreatedAtEpochMs(1_739_801_243_000L)
+            .build();
+
+        UserCreated deserialized = deserializer.deserialize("users", value.toByteArray());
+
+        assertEquals(value, deserialized);
+    }
+
+    @Test
+    void defaultsToAutoAndDeserializesConfluentPayload() {
+        ProtobufDeserializer<UserCreated> deserializer = configuredDeserializerWithoutPayloadFormat();
+        UserCreated value = UserCreated.newBuilder()
+            .setUserId("u-default-auto-confluent-1")
+            .setEmail("u-default-auto-confluent-1@example.com")
+            .setCreatedAtEpochMs(1_739_801_244_000L)
+            .build();
+
+        byte[] payload = confluentWirePayload(value.toByteArray(), 11, 0);
+        UserCreated deserialized = deserializer.deserialize("users", payload);
+
+        assertEquals(value, deserialized);
+    }
+
+    @Test
     void throwsSerializationExceptionWhenConfluentConfiguredAndPayloadIsRaw() {
         ProtobufDeserializer<UserCreated> deserializer = configuredDeserializer("confluent");
         UserCreated value = UserCreated.newBuilder()
@@ -190,6 +219,15 @@ class ProtobufDeserializerTest {
                 ProtobufDeserializer.VALUE_CLASS_NAME_CONFIG, UserCreated.class.getName(),
                 ProtobufDeserializer.PAYLOAD_FORMAT_CONFIG, payloadFormat
             ),
+            false
+        );
+        return deserializer;
+    }
+
+    private ProtobufDeserializer<UserCreated> configuredDeserializerWithoutPayloadFormat() {
+        ProtobufDeserializer<UserCreated> deserializer = new ProtobufDeserializer<>();
+        deserializer.configure(
+            Map.of(ProtobufDeserializer.VALUE_CLASS_NAME_CONFIG, UserCreated.class.getName()),
             false
         );
         return deserializer;
