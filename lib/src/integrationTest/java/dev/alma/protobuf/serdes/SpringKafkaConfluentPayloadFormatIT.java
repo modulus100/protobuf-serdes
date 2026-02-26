@@ -4,10 +4,16 @@ import static dev.alma.protobuf.serdes.ProtobufTestTopics.USER_CREATED_TOPIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -28,8 +34,6 @@ class SpringKafkaConfluentPayloadFormatIT {
     @DynamicPropertySource
     static void registerKafkaProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
-        registry.add("spring.kafka.producer.key-serializer", () -> "org.apache.kafka.common.serialization.StringSerializer");
-        registry.add("spring.kafka.producer.value-serializer", () -> "org.apache.kafka.common.serialization.ByteArraySerializer");
         registry.add("spring.kafka.consumer.key-deserializer", () -> "org.apache.kafka.common.serialization.StringDeserializer");
         registry.add("spring.kafka.consumer.value-deserializer", ProtobufDeserializer.class::getName);
         registry.add("spring.kafka.consumer.group-id", () -> "protobuf-serdes-confluent-format-it-group");
@@ -44,8 +48,7 @@ class SpringKafkaConfluentPayloadFormatIT {
         );
     }
 
-    @Autowired
-    private KafkaTemplate<String, byte[]> kafkaTemplate;
+    private static final String SCHEMA_REGISTRY_URL = "mock://protobuf-serdes-confluent-format-it";
 
     @Autowired
     private ProbeConsumer probeConsumer;
@@ -58,10 +61,23 @@ class SpringKafkaConfluentPayloadFormatIT {
             .setCreatedAtEpochMs(1_739_801_245_000L)
             .build();
 
-        byte[] framed = ConfluentProtobufWire.frame(payload.toByteArray(), 101, 0);
-        kafkaTemplate.send(USER_CREATED_TOPIC, payload.getUserId(), framed).get(20, TimeUnit.SECONDS);
+        KafkaTemplate<String, UserCreated> confluentKafkaTemplate = newConfluentKafkaTemplate();
+        try {
+            confluentKafkaTemplate.send(USER_CREATED_TOPIC, payload.getUserId(), payload).get(20, TimeUnit.SECONDS);
+        } finally {
+            confluentKafkaTemplate.destroy();
+        }
 
         UserCreated consumed = probeConsumer.awaitMessage(Duration.ofSeconds(20));
         assertEquals(payload, consumed);
+    }
+
+    private KafkaTemplate<String, UserCreated> newConfluentKafkaTemplate() {
+        Map<String, Object> producerProperties = new HashMap<>();
+        producerProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
+        producerProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        producerProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaProtobufSerializer.class);
+        producerProperties.put("schema.registry.url", SCHEMA_REGISTRY_URL);
+        return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(producerProperties));
     }
 }

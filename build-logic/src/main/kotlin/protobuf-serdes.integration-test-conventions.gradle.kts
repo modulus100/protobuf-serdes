@@ -12,6 +12,10 @@ plugins {
 
 val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
+repositories {
+    maven("https://packages.confluent.io/maven/")
+}
+
 @Suppress("UnstableApiUsage")
 testing {
     suites {
@@ -34,6 +38,9 @@ testing {
                 implementation(libs.findLibrary("testcontainers-kafka").get())
                 implementation(libs.findLibrary("testcontainers-localstack").get())
                 implementation(libs.findLibrary("aws-sdk-s3").get())
+                implementation(libs.findLibrary("confluent-kafka-protobuf-serializer").get()) {
+                    exclude(group = "org.apache.kafka", module = "kafka-clients")
+                }
             }
 
             targets {
@@ -52,4 +59,3 @@ testing {
 tasks.named("check") {
     dependsOn(testing.suites.named("integrationTest"))
 }
-
